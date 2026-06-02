@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Calculadora de Malhas — Futurista</title>
+
+<style>
+:root {
+--bg: #041018;
+--panel: #0a1f2a;
+--text: #dffaff;
+--primary: #00e5ff;
+--secondary: #165c68;
+--glass: rgba(255,255,255,0.03);
+--radius: 12px;
+--font-scale: 1;
+--letter-spacing: normal;
+--line-height: normal;
+--brightness: 1;
+--contrast: 1;
+--saturate: 1;
+--transition-speed: 220ms;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--secondary); border-radius: 5px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+@keyframes popIn {
+from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes glowPulse {
+0% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.4); }
+70% { box-shadow: 0 0 0 6px rgba(0, 229, 255, 0); }
+100% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0); }
+}
+
+@keyframes floatChar {
+0% { transform: translateY(0px); }
+50% { transform: translateY(-10px); }
+100% { transform: translateY(0px); }
+}
+
+* { transition: background var(--transition-speed) ease, color var(--transition-speed) ease, border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease, transform var(--transition-speed) ease, filter var(--transition-speed) ease; }
+
+html, body { height: 100%; margin: 0; font-family: Inter, Arial, system-ui; background: var(--bg); color: var(--text); filter: brightness(var(--brightness)) contrast(var(--contrast)) saturate(var(--saturate)); font-size: calc(16px * var(--font-scale)); letter-spacing: var(--letter-spacing); line-height: var(--line-height); }
+
+.toolbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: linear-gradient(180deg, rgba(0,0,0,0.25), transparent); backdrop-filter: blur(5px); }
+.brand { display: flex; gap: 12px; align-items: center; }
+.logo { width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, var(--primary), var(--secondary)); box-shadow: 0 6px 30px rgba(0,230,255,0.12); display: flex; align-items: center; justify-content: center; font-weight: 700; color: #001; }
+h1 { font-size: 1.05rem; margin: 0; color: var(--primary); letter-spacing: 0.6px; }
+
+.toolbar-actions { display: flex; gap: 8px; align-items: center; }
+
+/* --- Sistema de Abas --- */
+.nav-tabs {
+display: flex;
+gap: 10px;
+margin-bottom: 18px;
+border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+padding-bottom: 8px;
+}
+.tab-btn {
+background: transparent;
+border: none;
+color: var(--text);
+padding: 8px 16px;
+cursor: pointer;
+font-weight: 600;
+font-size: 0.95rem;
+border-radius: 8px;
+opacity: 0.6;
+}
+.tab-btn:hover {
+opacity: 0.9;
+background: rgba(255, 255, 255, 0.03);
+}
+.tab-btn.active {
+opacity: 1;
+color: var(--primary);
+background: rgba(0, 229, 255, 0.08);
+border: 1px solid rgba(0, 229, 255, 0.2);
+}
+.tab-content {
+display: none;
+}
+.tab-content.active {
+display: block;
+animation: popIn 0.3s ease-out;
+}
+
+.btn { background: linear-gradient(180deg, var(--primary), var(--secondary)); border: none; color: #001; padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 700; box-shadow: 0 6px 18px rgba(0,229,255,0.08); position: relative; overflow: hidden; }
+.btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn:active { transform: translateY(1px); }
+.btn-main { animation: glowPulse 3s infinite; }
+
+.btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--glass); box-shadow: none; }
+.btn.ghost:hover { background: rgba(255, 255, 255, 0.05); border-color: var(--primary); }
+
+.wrap { max-width: 1100px; margin: 20px auto; padding: 16px; position: relative; z-index: 2; }
+.grid { display: grid; grid-template-columns: 1fr 360px; gap: 18px; }
+@media (max-width: 980px) { .grid { grid-template-columns: 1fr; } .settings-panel { left: 10px; right: 10px; top: 72px; width: auto; } }
+
+.panel { background: linear-gradient(180deg, var(--panel), rgba(0,0,0,0.02)); padding: 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.03); }
+.panel h2, .panel h3 { margin: 0 0 8px 0; color: var(--primary); }
+
+.malha {
+padding: 12px; margin-bottom: 12px; border-radius: 12px;
+border: 1px solid var(--secondary);
+background: linear-gradient(135deg, var(--panel), rgba(255,255,255,0.03));
+box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.malha h3 {
+margin: 0 0 10px 0;
+color: var(--primary);
+font-size: 1.2rem;
+font-weight: 800;
+letter-spacing: 0.5px;
+text-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.field-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; animation: popIn 0.3s ease-out; }
+.field-row input[type="number"], .field-row select {
+width: 150px; padding: 8px; border-radius: 8px;
+border: 1px solid rgba(255,255,255,0.08);
+background: rgba(0,0,0,0.2);
+color: var(--text);
+outline: none;
+}
+.field-row input[type="number"]:focus, .field-row select:focus {
+border-color: var(--primary);
+box-shadow: 0 0 8px rgba(0, 229, 255, 0.2);
+}
+
+.field-row .complex-input-group {
+display: flex;
+align-items: center;
+gap: 4px;
+background: rgba(0,0,0,0.15);
+padding: 2px 6px;
+border-radius: 8px;
+border: 1px solid rgba(255,255,255,0.05);
+}
+.field-row .complex-input-group input[type="number"] {
+width: 85px;
+border: none;
+background: transparent;
+padding: 6px 2px;
+}
+.field-row .complex-input-group span {
+font-size: 0.85rem;
+color: var(--primary);
+font-weight: bold;
+}
+/* Estilo reaproveitado para os inputs dos conversores */
+.res-input { width: 150px; padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2); color: var(--text); outline: none; }
+.res-input:focus { border-color: var(--primary); box-shadow: 0 0 8px rgba(0, 229, 255, 0.2); }
+
+.actions { display: flex; gap: 8px; margin-top: 10px; }
+.muted { color: #9fbfc6; font-size: 0.95rem; }
+
+.result-card {
+padding: 12px; border-radius: 10px;
+border-left: 4px solid var(--primary);
+background: linear-gradient(180deg, rgba(0,0,0,0.2), transparent);
+animation: popIn 0.5s ease-out;
+}
+
+.right-small { font-size: 0.9rem; color: #9fbfc6; }
+
+.mascot-container {
+position: fixed; bottom: 0; right: 0; height: 70vh; width: 580px; max-width: 45vw;
+display: flex; justify-content: flex-end; align-items: flex-end; pointer-events: none; z-index: 0; opacity: 0.9;
+animation: floatChar 6s ease-in-out infinite;
+mask-image: linear-gradient(to top, black 85%, transparent 100%);
+-webkit-mask-image: linear-gradient(to top, black 85%, transparent 100%);
+}
+.mascot-container img {
+width: 100%; height: 100%; object-fit: contain; object-position: bottom right; transition: opacity 0.4s ease-in-out;
+mask-image: linear-gradient(to top, transparent 0%, black 15%);
+-webkit-mask-image: linear-gradient(to top, transparent 0%, black 15%);
+}
+
+@media (max-width: 1366px) { .mascot-container { height: 65vh; width: 420px; opacity: 0.8; } }
+@media (max-width: 900px) { .mascot-container { height: 35vh; width: 250px; opacity: 0.4; } }
+
+.audio-player {
+position: fixed; top: 140px; left: 20px; z-index: 1000; padding: 15px 25px; min-width: 160px;
+background: rgba(6, 12, 16, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;
+border-left: 5px solid var(--primary); display: flex; align-items: center; justify-content: space-between; gap: 15px;
+box-shadow: 0 10px 40px rgba(0,0,0,0.6); transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.audio-player:hover { transform: translateY(-5px); box-shadow: 0 15px 50px rgba(0,0,0,0.8); }
+.audio-player span { font-size: 1rem; font-weight: 700; color: var(--text); letter-spacing: 1px; text-transform: uppercase; }
+.audio-btn {
+background: var(--primary); color: #001; border: none; border-radius: 50%; width: 42px; height: 42px;
+display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem;
+box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: filter 0.2s ease, transform 0.2s ease;
+}
+.audio-btn:hover { filter: brightness(1.2); transform: scale(1.1); }
+
+@media (max-width: 900px) {
+.audio-player { top: auto; bottom: 20px; left: 50%; transform: translateX(-50%); min-width: 140px; }
+.audio-player:hover { transform: translateX(-50%) translateY(-5px); }
+}
+
+.toolbar, .wrap { position: relative; z-index: 10; }
+.settings-panel {
+position: fixed !important; right: 18px; top: 74px; width: 360px; max-width: calc(100% - 36px);
+background: linear-gradient(180deg, rgba(6,12,16,0.95), rgba(10,20,24,0.98));
+border-radius: 14px; padding: 14px; border: 1px solid rgba(0,230,255,0.15);
+box-shadow: 0 12px 40px rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+display: none; animation: popIn 0.3s ease-out; z-index: 9999 !important;
+}
+.settings-panel.show { display: block; }
+.settings-row { margin-bottom: 12px; }
+.section-title { color: var(--primary); font-weight: 700; margin-bottom: 8px; }
+label.small-note { font-size: 0.85rem; color: #9fbfc6; display: block; margin-bottom: 6px; }
+input[type="color"] { height: 36px; width: 56px; border-radius: 8px; border: none; padding: 0; cursor: pointer; }
+input[type="range"] { width: 100%; accent-color: var(--primary); }
+.slider-value { font-weight: 700; color: var(--text); margin-left: 8px; font-size: 0.95rem; }
+
+.result-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-family: monospace; font-size: 0.9rem; }
+.result-table th { text-align: left; padding: 10px; border-bottom: 2px solid var(--primary); color: var(--primary); text-transform: uppercase; }
+.result-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--text); }
+.result-table tr:last-child td { border-bottom: none; }
+.result-table tr:hover td { background: rgba(255,255,255,0.05); }
+
+@media print {
+.toolbar, .settings-panel, .audio-player, .mascot-container, form, .actions, aside, .btn, .nav-tabs, #btnPrintAc, #btnPrint, button, .conversor-panel { display: none !important; }
+body, .wrap, .grid, main, .panel {
+background: #ffffff !important; color: #000000 !important; margin: 0 !important; padding: 0 !important;
+display: block !important; width: 100% !important; max-width: 100% !important; box-shadow: none !important; border: none !important;
+}
+#resultArea { display: block !important; border: none !important; padding: 10px; margin-top: 0 !important; }
+h2, h3, h4, th, td, strong, span { color: #000000 !important; border-color: #000000 !important; }
+
+.result-power-box {
+background: none !important;
+border: none !important;
+border-left: 3px solid #000000 !important;
+border-radius: 0 !important;
+margin-bottom: 24px !important;
+padding-left: 16px !important;
+page-break-inside: avoid !important;
+}
+.p-active-val, .p-reactive-val, .p-apparent-val, .fp-val {
+color: #000000 !important;
+font-weight: bold !important;
+}
+
+#currentChart {
+max-height: 380px !important;
+max-width: 380px !important;
+margin: 35px auto !important;
+display: block !important;
+page-break-inside: avoid !important;
+}
+
+h2, h3, h4 { page-break-after: avoid !important; }
+#eqDetailsAc, #eqDetails { page-break-before: always !important; }
+}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.1/math.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+<body>
+
+<div id="mascotContainer" class="mascot-container">
+<img id="mascotImg" src="static/img/mascot_standard.png" alt="Mascote">
+</div>
+
+<div class="audio-player">
+<span style="font-size:0.8rem; color:var(--text)">♫ Lo-Fi</span>
+<audio id="bgAudio" loop>
+<source src="https://stream.zeno.fm/0r0xa792kwzuv" type="audio/mpeg">
+</audio>
+<button class="audio-btn" onclick="const a=document.getElementById('bgAudio'); if(a.paused) a.play(); else a.pause();">⏯</button>
+</div>
+
+<div class="toolbar">
+<div class="brand">
+<div class="logo">M</div>
+<div>
+<h1>Calculadora de Malhas</h1>
+<div class="right-small">Interativa · Tema: <span id="activeThemeName">Neon Cianeto</span></div>
+</div>
+</div>
+<div class="toolbar-actions">
+<button class="btn ghost" onclick="restoreAll()">🔁 Restaurar tudo</button>
+<button class="btn" id="openSettingsBtn" onclick="toggleSettings()">⚙️ Aparência</button>
+</div>
+</div>
+
+<div class="wrap">
+<div class="nav-tabs">
+<button class="tab-btn active" id="tabCcBtn" onclick="switchMode('CC')">⚡ Corrente Contínua (CC)</button>
+<button class="tab-btn" id="tabCaBtn" onclick="switchMode('CA')">🌊 Corrente Alternada (CA)</button>
+</div>
+
+<div class="grid">
+<main>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+<div class="panel conversor-panel">
+<h3>Retangular ➔ Polar</h3>
+<div class="field-row" style="margin-top:10px;">
+<input type="number" id="realInput" placeholder="Real (R)" step="0.01" class="res-input">
+<input type="number" id="imagInput" placeholder="Imag (jX)" step="0.01" class="res-input">
+</div>
+<div class="muted" style="margin-top:8px;">Resultado: <strong id="resultadoPol" style="color:var(--primary)">-</strong></div>
+</div>
+<div class="panel conversor-panel">
+<h3>Polar ➔ Retangular</h3>
+<div class="field-row" style="margin-top:10px;">
+<input type="number" id="modInput" placeholder="Módulo |Z|" step="0.01" class="res-input">
+<input type="number" id="angInput" placeholder="Ângulo (°)" step="0.01" class="res-input">
+</div>
+<div class="muted" style="margin-top:8px;">Resultado: <strong id="resultadoRet" style="color:var(--primary)">-</strong></div>
+</div>
+</div>
+
+<div id="contentCc" class="tab-content active">
+<div class="panel">
+<h2>Monte suas malhas (CC)</h2>
+<form id="malhaForm" method="POST">
+<div id="malhasContainer"></div>
+<div class="actions">
+<button type="button" class="btn" onclick="addMalha()">➕ Adicionar Malha</button>
+<button type="submit" class="btn btn-main">Calcular Correntes</button>
+</div>
+</form>
+</div>
+</div>
+
+<div id="contentCa" class="tab-content">
+<div class="panel">
+<h2>Calculadora Matricial de Alternada (CA)</h2>
+<form id="malhaFormCa" method="POST">
+<div id="malhasContainerCa"></div>
+<div class="actions">
+<button type="button" class="btn" id="addMalhaCaBtn" onclick="addMalhaCa()">➕ Adicionar Malha CA</button>
+<button type="submit" class="btn btn-main">Calcular Sistema CA</button>
+</div>
+</form>
+</div>
+</div>
+
+<div id="resultArea" class="panel" style="margin-top:14px; display:none;">
+    <h2>Resultados</h2>
+    <div id="resultsInner" class="result-card"></div>
+
+    <div id="ccChartContainer" style="margin-top:20px; height:380px; position:relative;">
+        <canvas id="currentChart"></canvas>
+    </div>
+
+    <div id="acChartsGrid" style="display:none; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; margin-top: 25px;">
+        <div class="panel" style="height:320px; position:relative;">
+            <canvas id="currentFasorChart"></canvas>
+        </div>
+        <div class="panel" style="height:320px; position:relative;">
+            <canvas id="voltageFasorChart"></canvas>
+        </div>
+        <div class="panel" style="height:320px; position:relative;">
+            <canvas id="sineWaveChart"></canvas>
+        </div>
+        <div class="panel" style="height:320px; position:relative;">
+            <canvas id="powerTriangleChart"></canvas>
+        </div>
+    </div>
+</div>
+</main>
+
+<aside>
+<div class="panel" style="margin-bottom: 20px;">
+<h2>📚 Biblioteca</h2>
+<div class="muted" style="margin-bottom:10px; font-size:0.85rem;">Exemplos Prontos:</div>
+<div id="bibliotecaCcGroup">
+<button class="btn ghost" style="width:100%; text-align:left; margin-bottom:5px;" onclick="loadCircuit('simple2')">
+⚡ 2 Malhas Básicas
+</button>
+<button class="btn ghost" style="width:100%; text-align:left; margin-bottom:5px;" onclick="loadCircuit('wheatstone')">
+💎 Ponte de Wheatstone
+</button>
+<button class="btn ghost" style="width:100%; text-align:left;" onclick="loadCircuit('ladder')">
+🪜 Rede Escada
+</button>
+</div>
+<div id="bibliotecaCaGroup" style="display:none;">
+<p class="muted" style="font-size:0.8rem;">Os exemplos de CA serão disponibilizados ao homologar o motor matemático.</p>
+</div>
+</div>
+
+<div class="panel">
+<h2>Visual</h2>
+<div class="muted">Preview e acessibilidade</div>
+<div style="height:10px"></div>
+<div style="display:flex; gap:8px; align-items:center;">
+<div style="width:40px; height:40px; border-radius:8px; background:var(--primary); display:flex; align-items:center; justify-content:center; font-size:0.7em; color:#000;">Pri</div>
+<div style="width:40px; height:40px; border-radius:8px; background:var(--secondary); display:flex; align-items:center; justify-content:center; font-size:0.7em; color:#fff;">Sec</div>
+<div style="width:40px; height:40px; border-radius:8px; background:var(--panel); border:1px solid rgba(255,255,255,0.1);"></div>
+</div>
+</div>
+</aside>
+</div>
+</div>
+
+<div id="settingsPanel" class="settings-panel" role="dialog" aria-hidden="true">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+<div style="font-weight:800; color:var(--primary)">Aparência & Acessibilidade</div>
+<div style="display:flex; gap:8px;">
+<button class="restore-btn" onclick="restoreAll()">Restaurar tudo</button>
+<button class="btn ghost" onclick="toggleSettings()">Fechar</button>
+</div>
+</div>
+<div class="settings-row">
+<div class="section-title">🎨 Tema</div>
+<div class="small-note">Modo rápido</div>
+<div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+<button class="btn ghost" onclick="setMode('light')">Claro</button>
+<button class="btn ghost" onclick="setMode('dark')">Escuro</button>
+<button class="btn ghost" onclick="setMode('auto')">Auto</button>
+</div>
+<div class="small-note" style="margin-top:8px">Cores manuais</div>
+<div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+<div><label class="small-note">Primária</label><br><input id="colorPrimary" type="color" value="#00e5ff"></div>
+<div><label class="small-note">Secundária</label><br><input id="colorSecondary" type="color" value="#165c68"></div>
+<div><label class="small-note">Fundo</label><br><input id="colorBg" type="color" value="#041018"></div>
+<div><label class="small-note">Texto</label><br><input id="colorText" type="color" value="#dffaff"></div>
+</div>
+<div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+<button class="restore-btn" onclick="restoreTheme()">Restaurar tema</button>
+<div class="small-note" style="margin-left:auto">Preview: <strong id="previewName">Neon Cianeto</strong></div>
+</div>
+</div>
+<div class="settings-row">
+<div class="section-title">🌈 Daltonismo</div>
+<div style="display:flex; gap:8px;">
+<button class="btn ghost" onclick="applyDalton('protanopia')">Protanopia</button>
+<button class="btn ghost" onclick="applyDalton('deuteranopia')">Deuteranopia</button>
+<button class="btn ghost" onclick="applyDalton('tritanopia')">Tritanopia</button>
+<button class="restore-btn" onclick="resetDalton()">Restaurar</button>
+</div>
+</div>
+<div class="settings-row">
+<div class="section-title">🔤 Acessibilidade</div>
+<label class="small-note">Tamanho da fonte <span class="slider-value" id="fontValue">100%</span></label>
+<div style="display:flex; gap:8px; align-items:center;">
+<input id="fontRange" type="range" min="80" max="180" value="100">
+<button class="restore-btn" onclick="restoreAccessibility()">Restaurar</button>
+</div>
+<div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+<button class="btn ghost" onclick="toggleDyslexic()">Ativar fonte dislexia</button>
+<button class="btn ghost" onclick="increaseFont()">A+</button>
+<button class="btn ghost" onclick="decreaseFont()">A-</button>
+</div>
+</div>
+<div class="settings-row">
+<div class="section-title">🌗 Contraste & Brilho</div>
+<label class="small-note">Brilho <span class="slider-value" id="brightValue">100%</span></label>
+<input id="brightRange" type="range" min="60" max="140" value="100">
+<label class="small-note" style="margin-top:8px">Contraste <span class="slider-value" id="contrastValue">100%</span></label>
+<input id="contrastRange" type="range" min="60" max="200" value="100">
+<label class="small-note" style="margin-top:8px">Saturação <span class="slider-value" id="saturationValue">100%</span></label>
+<input id="saturationRange" type="range" min="50" max="200" value="100">
+<div style="display:flex; gap:8px; margin-top:8px;"><button class="restore-btn" onclick="restoreContrast()">Restaurar contraste</button></div>
+</div>
+<div class="settings-row">
+<div class="section-title">🎭 Temas Prontos & Extras</div>
+<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+<button class="btn ghost" onclick="applyPreset('theme')">Padrão</button>
+<button class="btn ghost" onclick="applyPreset('gamer')">Gamer</button>
+<button class="btn ghost" onclick="applyPreset('pink')">Pink</button>
+<button class="btn ghost" onclick="applyPreset('grey')">Nier Grey</button>
+</div>
+<div style="display:flex; gap:8px;"><button class="btn ghost" onclick="toggleMascot()">Alternar Personagem (2A)</button></div>
+</div>
+</div>
+
+<script type="module" src="static/js/main.js"></script>
+</body>
+</html>
